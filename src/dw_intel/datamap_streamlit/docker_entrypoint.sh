@@ -1,0 +1,1 @@
+python -m streamlit run quack/datamap_streamlit/ui.py

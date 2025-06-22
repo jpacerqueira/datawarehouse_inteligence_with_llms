@@ -1,0 +1,391 @@
+# Cashflow DataMap Schema API Samples
+# Base URL: http://0.0.0.0:8000
+
+# 1. Initialize Analyzer
+# POST /initialize
+curl -X POST "http://0.0.0.0:8000/api/v1/initialize" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "config": {
+      "bucket_name": "project-quack",
+      "prefix": "sbca/batch4/1299438/raw/",
+      "aws_region": "us-east-1",
+      "cache_size": 128,
+      "pattern": ".*\\.parquet$"
+    }
+  }'
+
+# Expected Response:
+# {
+#  "message":"Analyzer initialized successfully",
+#  "configuration":{"s3":{"bucket_name":"project-quack","prefix":"sbca/batch4/1299438/raw/","region":"us-east-1","pattern":".*\\.parquet$","cache_size":128},"bedrock":{"region":"us-east-1","embeddings_model":"amazon.titan-embed-text-v2:0","inference_model":"us.anthropic.claude-3-7-sonnet-20250219-v1:0"}}
+# }
+
+# Expected Response:
+# {
+#   "message": "Analyzer initialized successfully"
+# }
+
+# 2. Analyze Schema
+# POST /analyze
+curl -X POST "http://0.0.0.0:8000/api/v1/analyze" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "Historical Cash Flow Analysis (Monthly) , Use Case: Analyze past cash flow patterns to inform future forecasts.?",
+    "context": "Forecast Cashflow",
+    "format_type": "DuckDB SQL extended with PostgreSQL syntax"
+  }'
+
+# Expected Response:
+# {
+#   "analysis":"# Analysis of Current Payments Cashflow\n\n## SQL Query to Analyze Current Payments Cashflow\n\n```sql\nWITH payment_summary AS (\n    SELECT \n        p.date,\n        CASE \n            WHEN p.type = 'SalesReceipt' THEN 'Inflow'\n            WHEN p.type = 'PurchasePayment' THEN 'Outflow'\n            ELSE p.type\n        END AS flow_type,\n        SUM(p.total_amount) AS amount\n    FROM payments p\n    WHERE p.deleted_at IS NULL\n    GROUP BY p.date, p.type\n),\nmonthly_cashflow AS (\n    SELECT \n        TO_CHAR(TO_DATE(date, 'YYYY-MM-DD'), 'YYYY-MM') AS month,\n        flow_type,\n        SUM(amount) AS total_amount\n    FROM payment_summary\n    GROUP BY TO_CHAR(TO_DATE(date, 'YYYY-MM-DD'), 'YYYY-MM'), flow_type\n),\nnet_cashflow AS (\n    SELECT \n        month,\n        SUM(CASE WHEN flow_type = 'Inflow' THEN total_amount ELSE 0 END) AS inflows,\n        SUM(CASE WHEN flow_type = 'Outflow' THEN total_amount ELSE 0 END) AS outflows,\n        SUM(CASE WHEN flow_type = 'Inflow' THEN total_amount \n                 WHEN flow_type = 'Outflow' THEN -total_amount \n                 ELSE 0 END) AS net_cashflow\n    FROM monthly_cashflow\n    GROUP BY month\n    ORDER BY month\n)\n\nSELECT \n    month AS \"Month\",\n    ROUND(inflows::numeric, 2) AS \"Total Inflows\",\n    ROUND(outflows::numeric, 2) AS \"Total Outflows\",\n    ROUND(net_cashflow::numeric, 2) AS \"Net Cashflow\"\nFROM net_cashflow\nORDER BY month DESC;\n```\n\nThis query provides a monthly breakdown of your payment cashflows, showing:\n- Total inflows (money coming in from sales receipts)\n- Total outflows (money going out for purchases)\n- Net cashflow (difference between inflows and outflows)\n\nThe results are ordered by most recent month first, giving you a clear view of your current payment situation and recent trends.",
+#   "query":"what is my current payments cashflow?"
+# }
+
+# 3. Get SQL in Context
+# POST /sql_in_context
+curl -X POST "http://0.0.0.0:8000/api/v1/sql_in_context" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "Historical Cash Flow Analysis (Monthly) , Use Case: Analyze past cash flow patterns to inform future forecasts.?",
+    "context": "Forecast Cashflow",
+    "format_type": "DuckDB SQL extended with PostgreSQL syntax"
+  }'
+
+# Expected Response:
+# {
+#    "sql_in_context":"```sql\nWITH monthly_cash_flow AS (\n    SELECT\n        DATE_TRUNC('month', TO_DATE(le.DATE, 'YYYY-MM-DD')) AS month,\n        ba.ACCOUNT_NAME,\n        SUM(CASE WHEN le.DR > 0 THEN le.DR ELSE 0 END) AS cash_inflow,\n        SUM(CASE WHEN le.CR > 0 THEN le.CR ELSE 0 END) AS cash_outflow,\n        SUM(CASE WHEN le.DR > 0 THEN le.DR ELSE -le.CR END) AS net_cash_flow\n    FROM\n        ledger_entries le\n    JOIN\n        bank_accounts ba ON le.LEDGER_ACCOUNT_ID = ba.LEDGER_ACCOUNT_ID\n    WHERE\n        ba.ACCOUNT_TYPE_ID = 1  -- Assuming 1 represents bank accounts\n        AND le.BANK_RECONCILIATION_ID IS NOT NULL\n    GROUP BY\n        DATE_TRUNC('month', TO_DATE(le.DATE, 'YYYY-MM-DD')),\n        ba.ACCOUNT_NAME\n)\n\nSELECT\n    month,\n    ACCOUNT_NAME,\n    cash_inflow,\n    cash_outflow,\n    net_cash_flow,\n    SUM(net_cash_flow) OVER (PARTITION BY ACCOUNT_NAME ORDER BY month) AS running_balance,\n    LAG(net_cash_flow) OVER (PARTITION BY ACCOUNT_NAME ORDER BY month) AS previous_month_flow,\n    CASE\n        WHEN LAG(net_cash_flow) OVER (PARTITION BY ACCOUNT_NAME ORDER BY month) = 0 THEN NULL\n        ELSE (net_cash_flow - LAG(net_cash_flow) OVER (PARTITION BY ACCOUNT_NAME ORDER BY month)) / \n             NULLIF(ABS(LAG(net_cash_flow) OVER (PARTITION BY ACCOUNT_NAME ORDER BY month)), 0) * 100\n    END AS percentage_change\nFROM\n    monthly_cash_flow\nORDER BY\n    ACCOUNT_NAME,\n    month;\n```",
+#     "query":"Historical Cash Flow Analysis (Monthly) , Use Case: Analyze past cash flow patterns to inform future forecasts.? ",
+#     "validation_status":"failed",
+#     "validation_message":"Error during validation: string indices must be integers, not 'str'"
+# }
+
+# 4. Get SQL in Context
+# POST /sql_in_context
+curl -X POST "http://0.0.0.0:8000/api/v1/sql_in_context_v2" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "Historical Cash Flow Analysis (Monthly) , Use Case: Analyze past cash flow patterns to inform future forecasts.?",
+    "context": "Forecast Cashflow",
+    "format_type": "DuckDB SQL extended with PostgreSQL syntax"
+  }'
+
+# Expected Response:
+# {
+#    "sql_in_context":"```sql\nWITH monthly_cash_flow AS (\n    SELECT\n        DATE_TRUNC('month', TO_DATE(le.DATE, 'YYYY-MM-DD')) AS month,\n        ba.ACCOUNT_NAME,\n        SUM(CASE WHEN le.DR > 0 THEN le.DR ELSE 0 END) AS cash_inflow,\n        SUM(CASE WHEN le.CR > 0 THEN le.CR ELSE 0 END) AS cash_outflow,\n        SUM(CASE WHEN le.DR > 0 THEN le.DR ELSE -le.CR END) AS net_cash_flow\n    FROM\n        ledger_entries le\n    JOIN\n        bank_accounts ba ON le.LEDGER_ACCOUNT_ID = ba.LEDGER_ACCOUNT_ID\n    WHERE\n        ba.ACCOUNT_TYPE_ID = 1  -- Assuming 1 represents bank accounts\n        AND le.BANK_RECONCILIATION_ID IS NOT NULL\n    GROUP BY\n        DATE_TRUNC('month', TO_DATE(le.DATE, 'YYYY-MM-DD')),\n        ba.ACCOUNT_NAME\n)\n\nSELECT\n    month,\n    ACCOUNT_NAME,\n    cash_inflow,\n    cash_outflow,\n    net_cash_flow,\n    SUM(net_cash_flow) OVER (PARTITION BY ACCOUNT_NAME ORDER BY month) AS running_balance,\n    LAG(net_cash_flow) OVER (PARTITION BY ACCOUNT_NAME ORDER BY month) AS previous_month_flow,\n    CASE\n        WHEN LAG(net_cash_flow) OVER (PARTITION BY ACCOUNT_NAME ORDER BY month) = 0 THEN NULL\n        ELSE (net_cash_flow - LAG(net_cash_flow) OVER (PARTITION BY ACCOUNT_NAME ORDER BY month)) / \n             NULLIF(ABS(LAG(net_cash_flow) OVER (PARTITION BY ACCOUNT_NAME ORDER BY month)), 0) * 100\n    END AS percentage_change\nFROM\n    monthly_cash_flow\nORDER BY\n    ACCOUNT_NAME,\n    month;\n```",
+#     "query":"Historical Cash Flow Analysis (Monthly) , Use Case: Analyze past cash flow patterns to inform future forecasts.? ",
+#     "validation_status":"failed",
+#     "validation_message":"Error during validation: string indices must be integers, not 'str'"
+# }
+
+# 5. Get Similar Schema
+# POST /similar
+curl -X POST "http://0.0.0.0:8000/api/v1/similar" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "payments",
+    "k": 3
+  }'
+
+# Expected Response:
+# {
+#   "similar_schema": [
+#     "payments",
+#     "transactions",
+#     "payment_history"
+#   ],
+#   "scores": [
+#     0.95,
+#     0.87,
+#     0.82
+#   ]
+# }
+
+# 6. Get Table Schema
+# POST /table
+curl -X POST "http://0.0.0.0:8000/api/v1/table" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "table_name": "artefacts"
+  }'
+
+# Expected Response:
+# {
+#   "name": "payments",
+#   "columns": [
+#     {
+#       "name": "payment_id",
+#       "type": "string",
+#       "nullable": false
+#     },
+#     {
+#       "name": "amount",
+#       "type": "decimal",
+#       "nullable": false
+#     },
+#     {
+#       "name": "status",
+#       "type": "string",
+#       "nullable": false
+#     }
+#   ],
+#   "column_count": 3,
+#   "row_count": 1000,
+#   "last_modified": "2024-03-20T10:30:00Z",
+#   "size_bytes": 102400
+# }
+
+# 7. Get Column Info
+# POST /column
+curl -X POST "http://0.0.0.0:8000/api/v1/column" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "table_name": "payments",
+    "column_name": "TOTAL_NET_AMOUNT"
+  }'
+
+# Expected Response:
+# {
+#   "name":"TOTAL_NET_AMOUNT",
+#   "type":"float64",
+#   "nullable": true,
+#   "unique_values": 500,
+#   "null_count": 0,
+#   "sample_values": [
+#     "100.00",
+#     "250.50",
+#     "75.25"
+#   ]
+# }
+
+# 8. Get Schema Summary
+# GET /schema
+curl -X GET "http://0.0.0.0:8000/api/v1/schema"
+
+# Expected Response:
+# {
+#   "total_tables": 5,
+#   "tables": [
+#     {
+#       "name": "payments",
+#       "column_count": 3,
+#       "columns": ["payment_id", "amount", "status"],
+#       "row_count": 1000,
+#       "last_modified": "2024-03-20T10:30:00Z",
+#       "size_bytes": 102400
+#     },
+#     {
+#       "name": "customers",
+#       "column_count": 4,
+#       "columns": ["customer_id", "name", "email", "created_at"],
+#       "row_count": 500,
+#       "last_modified": "2024-03-20T10:30:00Z",
+#       "size_bytes": 51200
+#     }
+#   ]
+# }
+
+# 9. Root Endpoint
+# GET /
+curl -X GET "http://0.0.0.0:8000/api/v1/"
+
+# Expected Response:
+# {
+#   "message": "Cashflow DataMap Schema API"
+# }
+
+# 10. Execute SQL Query
+# POST /execute_sql
+curl -X POST "http://0.0.0.0:8000/api/v1/execute_sql" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sql": "WITH monthly_cash_flow AS (\n    SELECT\n        DATE_TRUNC('month', TO_DATE(le.DATE, 'YYYY-MM-DD')) AS month,\n        ba.ACCOUNT_NAME,\n        SUM(CASE WHEN le.CR > 0 THEN le.CR ELSE 0 END) AS cash_inflow,\n        SUM(CASE WHEN le.DR > 0 THEN le.DR ELSE 0 END) AS cash_outflow,\n        SUM(le.CR - le.DR) AS net_cash_flow\n    FROM\n        ledger_entries le\n    JOIN\n        bank_accounts ba ON le.LEDGER_ACCOUNT_ID = ba.LEDGER_ACCOUNT_ID\n    WHERE\n        ba.ACCOUNT_TYPE_ID = 1  -- Assuming 1 represents bank accounts\n        AND le.DATE IS NOT NULL\n    GROUP BY\n        DATE_TRUNC('month', TO_DATE(le.DATE, 'YYYY-MM-DD')),\n        ba.ACCOUNT_NAME\n)\nSELECT\n    month,\n    ACCOUNT_NAME,\n    cash_inflow,\n    cash_outflow,\n    net_cash_flow,\n    SUM(net_cash_flow) OVER (PARTITION BY ACCOUNT_NAME ORDER BY month) AS running_balance,\n    CASE\n        WHEN LAG(net_cash_flow) OVER (PARTITION BY ACCOUNT_NAME ORDER BY month) IS NULL THEN 0\n        ELSE (net_cash_flow - LAG(net_cash_flow) OVER (PARTITION BY ACCOUNT_NAME ORDER BY month)) / \n             NULLIF(ABS(LAG(net_cash_flow) OVER (PARTITION BY ACCOUNT_NAME ORDER BY month)), 0) * 100\n    END AS month_over_month_change_pct\nFROM\n    monthly_cash_flow\nORDER BY\n    ACCOUNT_NAME,\n    month;"
+  }'
+
+# Expected Response:
+# {
+#   "results": [
+#     {
+#       "month": "2024-03",
+#       "total_receipts": 150000.00,
+#       "total_spends": 75000.00,
+#       "net_cashflow": 75000.00
+#     },
+#     {
+#       "month": "2024-02",
+#       "total_receipts": 120000.00,
+#       "total_spends": 60000.00,
+#       "net_cashflow": 60000.00
+#     },
+#     {
+#       "month": "2024-01",
+#       "total_receipts": 100000.00,
+#       "total_spends": 50000.00,
+#       "net_cashflow": 50000.00
+#     }
+#   ]
+# }
+
+# Error Response Example (for all endpoints):
+# {
+#   "detail": "Error message describing what went wrong",
+#   "status_code": 500,
+#   "error_type": "ExecutionError"
+# }
+
+# 11. Generate ERD - Works Fine
+# POST /generate_erd/analyze
+curl -X POST "http://0.0.0.0:8000/api/v1/generate_erd/analyze" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": " Analyze all relationships between all tables, their primary and foreign keys too for all tables? ",
+    "context": "database_schema",
+    "format_type": "json"
+  }'
+
+# Expected Response:
+# {
+#  "enriched_schema": {
+#    "tables": [
+#      {
+#        "name": "payments",
+#        "primary_key": [
+#          "ID"
+#        ],
+#        "foreign_keys": [
+#          {
+#            "column": "BUSINESS_ID",
+#            "references": {
+#              "table": "businesses",
+#              "column": "ID"
+#            }
+#          },
+#          {
+#            "column": "BANK_ACCOUNT_ID",
+#            "references": {
+#              "table": "bank_accounts",
+#              "column": "ID"
+#            }
+#          },
+#          {
+#            "column": "CONTACT_ID",
+#            "references": {
+#              "table": "contacts",
+#              "column": "ID"
+#            }
+#          },
+#          {
+#            "column": "LEDGER_ACCOUNT_ID",
+#            "references": {
+#              "table": "ledger_accounts",
+#              "column": "ID"
+#            }
+#          },
+#          {
+#            "column": "PAYMENT_TYPE_ID",
+#            "references": {
+#              "table": "payment_types",
+#              "column": "ID"
+#            }
+#          }
+#        ],
+#        "relationships": [
+#          {
+#            "related_table": "payment_artefacts",
+#            "type": "one-to-many",
+#            "description": "One payment can have multiple payment artefacts"
+#          },
+#          {
+#            "related_table": "bank_payments",
+#            "type": "one-to-one",
+#            "description": "A payment may be associated with a bank payment"
+#          },
+#          {
+#            "related_table": "transactions",
+#            "type": "many-to-many",
+#            "description": "Payments are linked to transactions through payment_artefacts"
+#          }
+#        ],
+#        "column_dependencies": [
+#          {
+#            "column": "TOTAL_AMOUNT",
+#            "depends_on": [
+#              "TOTAL_NET_AMOUNT",
+#              "TOTAL_TAX_AMOUNT"
+#            ],
+#            "constraint": "TOTAL_AMOUNT = TOTAL_NET_AMOUNT + TOTAL_TAX_AMOUNT"
+#          },
+#          {
+#            "column": "CURRENCY_TOTAL_AMOUNT",
+#            "depends_on": [
+#              "CURRENCY_TOTAL_NET_AMOUNT",
+#              "CURRENCY_TOTAL_TAX_AMOUNT"
+#            ],
+#            "constraint": "CURRENCY_TOTAL_AMOUNT = CURRENCY_TOTAL_NET_AMOUNT + CURRENCY_TOTAL_TAX_AMOUNT"
+#          }
+#        ]
+#      },
+# .....................................................................
+#    ],
+#    "system_wide_relationships": [
+#      {
+#        "description": "The system represents a financial management database where payments are linked to transactions through payment_artefacts, creating a many-to-many relationship between payments and transactions."
+#      },
+#      {
+#        "description": "Bank payments are directly linked to payments, representing the actual bank transaction for a payment record."
+#      },
+#      {
+#        "description": "All tables share common business identifiers (BUSINESS_ID) indicating multi-tenant architecture."
+#      },
+#      {
+#        "description": "All tables include audit fields like SOURCE_CREATED_DATETIME, SOURCE_UPDATED_DATETIME, and DW_INTEL_GUID for tracking changes."
+#      }
+#    ]
+#  },
+#  "erd_files": {
+#    "json": "sbca/batch4/1299438/raw/_metadata/erd/relationships_20250513_101354.json"
+#  },
+#  "query": "Analyze relationships between payments, customers, and transactions tables",
+#  "context": "database_schema",
+#  "format_type": "json"
+# }
+
+# 12. Get Latest ERD Files
+# GET /generate_erd/files
+curl -X GET "http://0.0.0.0:8000/api/v1/generate_erd/files"
+
+# Expected Response:
+# {
+#   "json":"sbca/batch4/1299438/raw/_metadata/erd/relationships_20250513_154546.json",
+#   "svg":"sbca/batch4/1299438/raw/_metadata/erd/erd_20250513_154547.svg",
+#   "png":"sbca/batch4/1299438/raw/_metadata/erd/erd_20250513_154548.png"
+# }
+
+# 13. Generate ERD - Fails sometimes, analysis is incomplete and has a mismatch - runs out matching tables , because embeddings are not big enough, is cut.
+# POST /generate_erd/analyze
+curl -X POST "http://0.0.0.0:8000/api/v1/generate_erd/analyze" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "  Analyze relationships between payments, customers, banking information and transactions tables ? ",
+    "context": "database_schema",
+    "format_type": "json"
+  }'
+# Expected Response:
+# {
+#  "enriched_schema":{"tables":[{"name":"payments","primary_key":["ID"],"foreign_keys":[{"column":"BUSINESS_ID","references":{"table":"businesses","column":"ID"}},{"column":"BANK_ACCOUNT_ID","references":{"table":"bank_accounts","column":"ID"}},{"column":"CONTACT_ID","references":{"table":"contacts","column":"ID"}},{"column":"PAYMENT_TYPE_ID","references":{"table":"payment_types","column":"ID"}},{"column":"LEDGER_ACCOUNT_ID","references":{"table":"ledger_accounts","column":"ID"}},{"column":"STATE_ID","references":{"table":"states","column":"ID"}}],"relationships":[{"with_table":"bank_payments","type":"one-to-many","description":"One payment can be associated with multiple bank payments"},{"with_table":"payment_artefacts","type":"one-to-many","description":"One payment can have multiple payment artefacts"},{"with_table":"transactions","type":"one-to-many","description":"One payment can be related to multiple transactions"}],"constraints":[{"column":"ID","constraint":"NOT NULL"},{"column":"BUSINESS_ID","constraint":"NOT NULL"},{"column":"DW_INTEL_GUID","constraint":"NOT NULL"}]},{"name":"bank_payments","primary_key":["ID"],"foreign_keys":[{"column":"BUSINESS_ID","references":{"table":"businesses","column":"ID"}},{"column":"BANK_ACCOUNT_ID","references":{"table":"bank_accounts","column":"ID"}},{"column":"PAYMENT_ID","references":{"table":"payments","column":"ID"}}],"relationships":[{"with_table":"payments","type":"many-to-one","description":"Many bank payments can be associated with one payment"}],"constraints":[{"column":"ID","constraint":"NOT NULL"},{"column":"BUSINESS_ID","constraint":"NOT NULL"},{"column":"BANK_ACCOUNT_ID","constraint":"NOT NULL"},{"column":"REFERENCE","constraint":"NOT NULL"},{"column":"DATE","constraint":"NOT NULL"},{"column":"AMOUNT","constraint":"NOT NULL"}]},{"name":"transactions","primary_key":["ID"],"foreign_keys":[{"column":"BUSINESS_ID","references":{"table":"businesses","column":"ID"}},{"column":"CONTACT_ID","references":{"table":"contacts","column":"ID"}},{"column":"TRANSACTION_TYPE_ID","references":{"table":"transaction_types","column":"ID"}},{"column":"USER_ID","references":{"table":"users","column":"ID"}}],"relationships":[{"with_table":"payments","type":"many-to-one","description":"Many transactions can be related to one payment through payment_artefacts"}],"constraints":[{"column":"ID","constraint":"NOT NULL"},{"column":"DATE","constraint":"NOT NULL"},{"column":"ORIGIN_ID","constraint":"NOT NULL"},{"column":"ORIGIN_TYPE","constraint":"NOT NULL"},{"column":"BUSINESS_ID","constraint":"NOT NULL"},{"column":"TOTAL","constraint":"NOT NULL"},{"column":"TRANSACTION_TYPE_ID","constraint":"NOT NULL"}]},{"name":"payment_artefacts","primary_key":["ID"],"foreign_keys":[{"column":"PAYMENT_ID","references":{"table":"payments","column":"ID"}},{"column":"ARTEFACT_ID","references":{"table":"transactions","column":"ID"}},{"column":"BUSINESS_ID","references":{"table":"businesses","column":"ID"}}],"relationships":[{"with_table":"payments","type":"many-to-one","description":"Many payment artefacts can be associated with one payment"},{"with_table":"transactions","type":"many-to-one","description":"Many payment artefacts can be associated with one transaction"}],"constraints":[{"column":"ID","constraint":"NOT NULL"},{"column":"PAYMENT_ID","constraint":"NOT NULL"},{"column":"ARTEFACT_ID","constraint":"NOT NULL"},{"column":"BUSINESS_ID","constraint":"NOT NULL"}]}],"relationships_summary":{"description":"The database schema represents a financial system where payments are central. Payments are linked to bank accounts and contacts. Bank payments are specific instances of payments tied to bank accounts. Transactions represent financial activities that can be linked to payments through payment_artefacts, which serve as a junction table connecting payments to transactions. All entities are associated with businesses, indicating a multi-tenant system.","key_relationships":["Payments are linked to bank accounts through BANK_ACCOUNT_ID","Bank payments reference specific payments through PAYMENT_ID","Payment artefacts connect payments to transactions in a many-to-many relationship","All tables have a business association through BUSINESS_ID"]}},
+#  "erd_files":{"json":"sbca/batch4/1299438/raw/_metadata/erd/relationships_20250514_175814.json","svg":"sbca/batch4/1299438/raw/_metadata/erd/erd_20250514_175817.svg","png":"sbca/batch4/1299438/raw/_metadata/erd/erd_20250514_175819.png"},
+#  "query":"  Analyze relationships between payments, customers, banking information and transactions tables ? ",
+#  "context":"database_schema",
+#  "format_type":"json"
+# }
+
+# Error Response Example (for ERD endpoints):
+# {
+#   "detail": "Error generating ERD: Failed to analyze schema relationships",
+#   "status_code": 500,
+#   "error_type": "ERDGenerationError"
+# }
+
+# Note: The ERD files (SVG, PNG, JSON) are stored in S3 and can be accessed using the returned paths.
+# The JSON file contains detailed relationship data, while SVG and PNG files provide visual representations
+# of the database schema relationships. 
