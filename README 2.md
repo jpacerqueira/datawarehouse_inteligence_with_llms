@@ -54,7 +54,6 @@ The pipelines assume that the following variables/secrets will be accessible:
 
 For issues and/or questions about this template repo, contact the Flux Devops team:
 
-- [Ryan Burness](mailto:ryan.burness@sage.com), Principal Engineer
-- [Peter Keenan](mailto:peter.keenan@sage.com), Engineer
+- [Joao Cerqueira - FuelbigData ](mailto:joao@fuelbigdata.com), Engineer
 
 [1]: https://confluence.sage.com/display/CODP/Release+Process
