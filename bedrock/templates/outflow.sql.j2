@@ -1,0 +1,10 @@
+SELECT
+  SUM(outflow) AS total_outflow,
+  category,
+  COUNT(*) AS transaction_count
+FROM {{ table }}
+WHERE 
+  transaction_date BETWEEN '{{ start_date }}' AND '{{ end_date }}'
+  AND outflow > 0
+GROUP BY category
+ORDER BY total_outflow DESC;

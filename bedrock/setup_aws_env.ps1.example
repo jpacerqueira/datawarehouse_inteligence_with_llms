@@ -1,0 +1,27 @@
+# AWS Environment Variables Setup Script (EXAMPLE)
+# IMPORTANT: Copy this file to setup_aws_env.ps1 and replace the placeholder values with your actual AWS credentials.
+# The setup_aws_env.ps1 file is ignored by Git to prevent accidental credential exposure.
+
+# Set AWS credentials
+# Replace these placeholder values with your actual AWS credentials
+$env:AWS_ACCESS_KEY_ID="YOUR_ACCESS_KEY_ID_HERE"
+$env:AWS_SECRET_ACCESS_KEY="YOUR_SECRET_ACCESS_KEY_HERE"
+
+# If you're using a session token (e.g., for temporary credentials), uncomment and set this:
+# $env:AWS_SESSION_TOKEN="YOUR_SESSION_TOKEN_HERE"
+
+# Set AWS region to us-east-1 (or another region where Bedrock is available)
+# Make sure the region you choose has AWS Bedrock available with Claude models
+$env:AWS_REGION="us-east-1"
+
+# Confirm environment variables are set
+Write-Host "AWS environment variables set:"
+Write-Host "AWS_ACCESS_KEY_ID: $($env:AWS_ACCESS_KEY_ID.Substring(0, 4))..." -ForegroundColor Green
+Write-Host "AWS_SECRET_ACCESS_KEY: [HIDDEN]" -ForegroundColor Green
+if ($env:AWS_SESSION_TOKEN) {
+    Write-Host "AWS_SESSION_TOKEN: [HIDDEN]" -ForegroundColor Green
+}
+Write-Host "AWS_REGION: $($env:AWS_REGION)" -ForegroundColor Green
+
+Write-Host "`nYou can now run the Cash Flow POC with AWS Bedrock integration:" -ForegroundColor Cyan
+Write-Host "python main.py --query ""What was our cash flow in February 2025?"" --use-bedrock" -ForegroundColor Yellow

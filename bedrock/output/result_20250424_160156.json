@@ -1,0 +1,12 @@
+{
+  "query": "What was our cash flow in February 2025?",
+  "sql": "-- Cash Flow Analysis Template\nSELECT\n  SUM(inflow) - SUM(outflow) AS net_cash_flow,\n  SUM(inflow) AS total_inflow,\n  SUM(outflow) AS total_outflow\nFROM read_parquet('data/payments.parquet')\nWHERE transaction_date BETWEEN '2025-02-01' AND '2025-02-28';",
+  "results": [
+    {
+      "net_cash_flow": 23000.0,
+      "total_inflow": 33000.0,
+      "total_outflow": 10000.0
+    }
+  ],
+  "ai_analysis": true
+}

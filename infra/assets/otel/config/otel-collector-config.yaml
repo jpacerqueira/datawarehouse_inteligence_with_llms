@@ -1,0 +1,49 @@
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+  awsecscontainermetrics:
+
+processors:
+  batch:
+  memory_limiter:
+    check_interval: 1s
+    # 50% of maximum memory
+    limit_percentage: 50
+    # 25% of limit
+    spike_limit_percentage: 25
+
+exporters:
+  otlphttp/nr:
+    endpoint: https://otlp.nr-data.net:4317
+    headers:
+      # https://opentelemetry.io/docs/collector/configuration/#environment-variables
+      api-key: ${env:NEW_RELIC_API_KEY}
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters:
+        - otlphttp/nr
+
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters:
+        - otlphttp/nr
+
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters:
+        - otlphttp/nr

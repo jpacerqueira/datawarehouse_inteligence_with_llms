@@ -1,0 +1,16 @@
+{
+  "query": "What were the inflows for February 2025?",
+  "sql": "SELECT\n  SUM(inflow) AS total_inflow,\n  category,\n  COUNT(*) AS transaction_count\nFROM read_parquet('data/payments.parquet')\nWHERE \n  transaction_date BETWEEN '2025-02-01' AND '2025-02-28'\n  AND inflow > 0\nGROUP BY category\nORDER BY total_inflow DESC;",
+  "results": [
+    {
+      "total_inflow": 23000.0,
+      "category": "Sales",
+      "transaction_count": 3
+    },
+    {
+      "total_inflow": 10000.0,
+      "category": "Investment",
+      "transaction_count": 1
+    }
+  ]
+}

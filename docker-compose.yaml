@@ -1,0 +1,16 @@
+include:
+  - path: ./compose/observability.yaml
+    project_directory: .
+    env_file: .env
+
+  - path: ./compose/compute.yaml
+    project_directory: .
+    env_file: .env
+
+networks:
+  private:
+    driver: bridge
+    name: quack_private
+  public:
+    driver: bridge
+    name: quack_public

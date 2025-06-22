@@ -1,0 +1,18 @@
+-- Monthly Financial Analysis Template
+WITH daily_summary AS (
+  SELECT
+    transaction_date,
+    SUM(inflow) AS daily_inflow,
+    SUM(outflow) AS daily_outflow,
+    SUM(inflow) - SUM(outflow) AS daily_net
+  FROM {{ table }}
+  WHERE transaction_date BETWEEN '{{ start_date }}' AND '{{ end_date }}'
+  GROUP BY transaction_date
+)
+SELECT
+  SUM(daily_inflow) AS total_inflow,
+  SUM(daily_outflow) AS total_outflow,
+  SUM(daily_net) AS net_cash_flow,
+  AVG(daily_inflow) AS avg_daily_inflow,
+  AVG(daily_outflow) AS avg_daily_outflow
+FROM daily_summary;
