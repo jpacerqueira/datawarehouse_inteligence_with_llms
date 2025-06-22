@@ -1,8 +1,9 @@
-#/bin/bash
+#!/bin/bash
+set -e
 
 # This script is used to run the datamap_api module in a Docker container.
 
-#python -m quack.datamap_api
+#python -m dw_intel.datamap_api
 
-# Run the streamlit app
-python -m streamlit run quack/datamap_streamlit/ui.py
+# Run the streamlit app
+python -m streamlit run dw_intel/datamap_streamlit/ui.py

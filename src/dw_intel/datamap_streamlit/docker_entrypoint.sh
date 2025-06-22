@@ -1,1 +1,1 @@
-python -m streamlit run quack/datamap_streamlit/ui.py
+python -m streamlit run dw_intel/datamap_streamlit/ui.py

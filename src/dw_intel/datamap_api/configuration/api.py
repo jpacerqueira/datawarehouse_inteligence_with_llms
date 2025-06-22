@@ -9,7 +9,7 @@ class ApiConfiguration(BaseSettings):
     """
 
     # S3 Configuration
-    bucket_name: str = "project-quack"
+    bucket_name: str = "project-dw_intel"
     prefix: str = "sbca/batch4/1299438/raw/"
     aws_region: str = "us-east-1"
     cache_size: int = 128

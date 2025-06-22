@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
-from quack.datamap_api.models.erd_request import ERDRequest
-from quack.datamap_api.models.erd_response import ERDResponse
-from quack.datamap_api.deps.analyzer_lock import get_analyzer
-from quack.shared.analyser import DataMapSchemaAnalyzer
+from dw_intel.datamap_api.models.erd_request import ERDRequest
+from dw_intel.datamap_api.models.erd_response import ERDResponse
+from dw_intel.datamap_api.deps.analyzer_lock import get_analyzer
+from dw_intel.shared.analyser import DataMapSchemaAnalyzer
 from typing import Dict, Optional
 
 router = APIRouter()

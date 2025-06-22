@@ -5,10 +5,10 @@ import json
 
 import streamlit as st
 import pandas as pd
-from quack.shared.rag import BedrockDatamapRAG
-from quack.shared.sql_plan_validator import SQLPlanValidator
-from quack.shared.produce_tables_erd import TableRelationshipAnalyzer
-from quack.shared.duckdb_adapter import (
+from dw_intel.shared.rag import BedrockDatamapRAG
+from dw_intel.shared.sql_plan_validator import SQLPlanValidator
+from dw_intel.shared.produce_tables_erd import TableRelationshipAnalyzer
+from dw_intel.shared.duckdb_adapter import (
     execute_s3_pattern_query,
     get_duckdb_s3_connection,
 )
@@ -222,7 +222,7 @@ if "analyzer" not in st.session_state:
 # Initialize global configuration variables
 if "s3_config" not in st.session_state:
     st.session_state.s3_config = {
-        "bucket_name": "project-quack",
+        "bucket_name": "project-dw_intel",
         "prefix": "sbca/batch4/1299438/raw/",
         "region_name": "us-east-1",
         "cache_size": 128,

@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+from typing import Dict, List, Optional
 
-from quack.datamap_api.models.schema_summary_response import SchemaSummaryResponse
-from quack.datamap_api.deps.analyzer_lock import get_analyzer
+from dw_intel.datamap_api.models.schema_summary_response import SchemaSummaryResponse
+from dw_intel.datamap_api.deps.analyzer_lock import get_analyzer
 
 router = APIRouter()
 

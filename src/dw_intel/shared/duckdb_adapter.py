@@ -71,7 +71,7 @@ def get_duckdb_s3_connection(region: str = 'us-east-1') -> duckdb.DuckDBPyConnec
         
         # Test the S3 connection with a simple operation
         try:
-            test_query = "SELECT count(*) FROM read_parquet('s3://project-quack/sbca/test/test.parquet') "
+            test_query = "SELECT count(*) FROM read_parquet('s3://project-dw_intel/sbca/test/test.parquet') "
             conn.execute(test_query)
             logger.info("S3 connection test successful")
         except Exception as e:

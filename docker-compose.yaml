@@ -10,7 +10,7 @@ include:
 networks:
   private:
     driver: bridge
-    name: quack_private
+    name: dw_intel_private
   public:
     driver: bridge
-    name: quack_public
+    name: dw_intel_public

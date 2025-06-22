@@ -4,10 +4,10 @@ services:
       context: ./src
       dockerfile: Dockerfile
       args:
-        - BASE_DIR=quack
+        - BASE_DIR=dw_intel
         - PROJECT_NAME=datamap_api
         - PROJECT_DIR=datamap_api
-    container_name: quack-api
+    container_name: dw_intel-api
     ports:
       - "8000:8000"
     volumes:
@@ -17,17 +17,17 @@ services:
       - ./src/hydration_data:/app/hydration_data # Mount the hydration data
     env_file:
       - .env
-    entrypoint: ["sh", "-c", "python3 -m quack.datamap_api"]
+    entrypoint: ["sh", "-c", "python3 -m dw_intel.datamap_api"]
 
   ui:
     build:
       context: ./src
       dockerfile: Dockerfile
       args:
-        - BASE_DIR=quack
+        - BASE_DIR=dw_intel
         - PROJECT_NAME=datamap_streamlit
         - PROJECT_DIR=datamap_streamlit
-    container_name: quack-ui
+    container_name: dw_intel-ui
     ports:
       - "8501:8501"
     volumes:
@@ -41,5 +41,5 @@ services:
       [
         "sh",
         "-c",
-        "python -m streamlit run quack/datamap_streamlit/ui.py",
+        "python -m streamlit run dw_intel/datamap_streamlit/ui.py",
       ]

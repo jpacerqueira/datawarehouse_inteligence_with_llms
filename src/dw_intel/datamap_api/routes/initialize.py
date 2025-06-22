@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
-from quack.datamap_api.models.config_request import ConfigRequest
-from quack.shared.analyser import DataMapSchemaAnalyzer
-from quack.datamap_api.deps.analyzer_lock import get_analyzer, set_analyzer
-from quack.datamap_api.configuration.api import get_api_configuration
+from dw_intel.datamap_api.models.config_request import ConfigRequest
+from dw_intel.shared.analyser import DataMapSchemaAnalyzer
+from dw_intel.datamap_api.deps.analyzer_lock import get_analyzer, set_analyzer
+from dw_intel.datamap_api.configuration.api import get_api_configuration
 
 import json
 import os

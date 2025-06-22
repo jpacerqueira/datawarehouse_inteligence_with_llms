@@ -5,8 +5,8 @@ from typing import Dict, List, Any, Optional
 import graphviz
 from datetime import datetime
 import logging
-from quack.shared.rag import BedrockDatamapRAG
-from quack.shared.s3_data_source import S3DataSource
+from dw_intel.shared.rag import BedrockDatamapRAG
+from dw_intel.shared.s3_data_source import S3DataSource
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

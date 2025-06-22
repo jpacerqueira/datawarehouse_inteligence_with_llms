@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from quack.datamap_api.models.column_request import ColumnRequest
-from quack.datamap_api.models.column_response import ColumnResponse
-from quack.datamap_api.deps.analyzer_lock import get_analyzer
+from dw_intel.datamap_api.models.column_request import ColumnRequest
+from dw_intel.datamap_api.models.column_response import ColumnResponse
+from dw_intel.datamap_api.deps.analyzer_lock import get_analyzer
 
 router = APIRouter()
 

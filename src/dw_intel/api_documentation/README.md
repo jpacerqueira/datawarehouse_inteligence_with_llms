@@ -23,7 +23,7 @@ POST /initialize
 ```json
 {
   "config": {
-    "bucket_name": "project-quack",
+    "bucket_name": "project-dw_intel",
     "prefix": "sbca/batch4/1299438/raw/",
     "aws_region": "us-east-1",
     "cache_size": 128,
@@ -38,7 +38,7 @@ POST /initialize
   "message": "Analyzer initialized successfully",
   "configuration": {
     "s3": {
-      "bucket_name": "project-quack",
+      "bucket_name": "project-dw_intel",
       "prefix": "sbca/batch4/1299438/raw/",
       "region": "us-east-1",
       "pattern": ".*\\.parquet$",

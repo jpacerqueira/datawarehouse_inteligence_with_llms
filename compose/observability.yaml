@@ -1,7 +1,7 @@
 services:
   grafana-lgtm:
     image: grafana/otel-lgtm
-    container_name: quack-grafana-lgtm
+    container_name: dw_intel-grafana-lgtm
     ports:
       - "3000:3000"
       - "4318" # OTLP http receiver
@@ -22,7 +22,7 @@ services:
     build:
       context: ./infra/assets/otel
 
-    container_name: quack-otel-collector
+    container_name: dw_intel-otel-collector
 
     ports:
       # - 1888:1888 # pprof extension

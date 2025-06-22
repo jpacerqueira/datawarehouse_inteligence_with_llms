@@ -16,7 +16,7 @@ from langchain_core.callbacks.base import BaseCallbackHandler
 import os
 from dotenv import load_dotenv
 import logging
-from quack.shared.s3_data_source import S3DataSource
+from dw_intel.shared.s3_data_source import S3DataSource
 from pydantic import BaseModel
 
 # Set up logging

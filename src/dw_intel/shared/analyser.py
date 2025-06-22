@@ -7,12 +7,12 @@ from fastapi import HTTPException
 import pandas as pd
 import numpy as np
 
-from quack.datamap_api.configuration.api import ApiConfiguration
-from quack.shared.rag import BedrockDatamapRAG
-from quack.shared.produce_tables_erd import TableRelationshipAnalyzer
+from dw_intel.datamap_api.configuration.api import ApiConfiguration
+from dw_intel.shared.rag import BedrockDatamapRAG
+from dw_intel.shared.produce_tables_erd import TableRelationshipAnalyzer
 
-from quack.shared.duckdb_adapter import get_duckdb_s3_connection, execute_s3_pattern_query
-from quack.shared.sql_plan_validator import SQLPlanValidator
+from dw_intel.shared.duckdb_adapter import get_duckdb_s3_connection, execute_s3_pattern_query
+from dw_intel.shared.sql_plan_validator import SQLPlanValidator
 from duckdb import DuckDBPyConnection
 
 logger = logging.getLogger(__name__)

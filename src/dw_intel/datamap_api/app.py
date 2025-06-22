@@ -2,13 +2,17 @@ import logging
 import os
 import json
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from pydantic import ValidationError
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from quack.datamap_api.routes import router as main_router
-from quack.shared.analyser import DataMapSchemaAnalyzer
-from quack.datamap_api.deps.analyzer_lock import set_analyzer
-from quack.datamap_api.configuration.api import ApiConfiguration
+from dw_intel.datamap_api.routes import router as main_router
+from dw_intel.shared.analyser import DataMapSchemaAnalyzer
+from dw_intel.datamap_api.deps.analyzer_lock import set_analyzer
+from dw_intel.datamap_api.configuration.api import ApiConfiguration
 # Load environment variables
 load_dotenv()
 

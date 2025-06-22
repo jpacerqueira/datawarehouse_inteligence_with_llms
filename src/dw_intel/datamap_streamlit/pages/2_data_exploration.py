@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 # Initialize global configuration variables
 if "s3_config" not in st.session_state:
     st.session_state.s3_config = {
-        "bucket_name": "project-quack",
+        "bucket_name": "project-dw_intel",
         "prefix": "sbca/batch3/1299438/bronze/",
         "region_name": "us-east-1",
         "cache_size": 128,
