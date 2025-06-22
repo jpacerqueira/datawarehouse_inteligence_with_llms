@@ -1,0 +1,463 @@
+openapi: 3.0.0
+info:
+  title: Cashflow DataMap Schema API
+  description: |
+    Cashflow DataMap Schema API helps you analyze and query database schema using AWS Bedrock and RAG.
+
+    ## Features
+    * Natural language querying of database schema
+    * Similarity-based schema retrieval
+    * Table and column-level schema analysis
+    * Interactive API documentation
+    * S3-based data source with parquet files
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+  license:
+    name: MIT License
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+tags:
+  - name: root
+    description: Basic API information and health check
+  - name: analysis
+    description: Schema analysis and operations
+  - name: tables
+    description: Table-specific operations and schema
+  - name: columns
+    description: Column-specific operations and analysis
+
+components:
+  schemas:
+    QueryRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          description: Natural language query about the database schema
+        k:
+          type: integer
+          description: Number of results to return
+          minimum: 1
+          maximum: 10
+          default: 3
+        context:
+          type: string
+          description: Context for the query (e.g., "cashflow")
+          default: "cashflow"
+        format_type:
+          type: string
+          description: Format type for the response (e.g., "sql")
+          default: "sql"
+
+    TableRequest:
+      type: object
+      required:
+        - table_name
+      properties:
+        table_name:
+          type: string
+          description: Name of the table to get schema for
+
+    ColumnRequest:
+      type: object
+      required:
+        - table_name
+        - column_name
+      properties:
+        table_name:
+          type: string
+          description: Name of the table
+        column_name:
+          type: string
+          description: Name of the column
+
+    ConfigRequest:
+      type: object
+      required:
+        - config
+      properties:
+        config:
+          type: object
+          description: Configuration data for the analyzer
+          properties:
+            bucket_name:
+              type: string
+              description: S3 bucket name
+            prefix:
+              type: string
+              description: S3 prefix
+            region_name:
+              type: string
+              description: AWS region name
+            cache_size:
+              type: integer
+              description: Cache size for RAG
+            pattern:
+              type: string
+              description: File pattern for schema files
+
+    AnalysisResponse:
+      type: object
+      required:
+        - analysis
+        - query
+      properties:
+        analysis:
+          type: string
+          description: Analysis results
+        query:
+          type: string
+          description: Original query
+
+    SimilarResponse:
+      type: object
+      required:
+        - similar_schema
+        - scores
+      properties:
+        similar_schema:
+          type: array
+          items:
+            type: string
+          description: List of similar schema entries
+        scores:
+          type: array
+          items:
+            type: number
+          description: Similarity scores for each entry
+
+    TableResponse:
+      type: object
+      required:
+        - name
+        - columns
+        - row_count
+        - last_modified
+        - size_bytes
+        - column_count
+      properties:
+        name:
+          type: string
+          description: Table name
+        columns:
+          type: array
+          items:
+            type: object
+          description: Table columns schema
+        column_count:
+          type: integer
+          description: Number of columns in the table
+        row_count:
+          type: integer
+          description: Number of rows in the table
+        last_modified:
+          type: string
+          description: Last modified timestamp
+        size_bytes:
+          type: integer
+          description: File size in bytes
+
+    ColumnResponse:
+      type: object
+      required:
+        - name
+        - type
+        - nullable
+        - unique_values
+        - null_count
+        - sample_values
+      properties:
+        name:
+          type: string
+          description: Column name
+        type:
+          type: string
+          description: Column data type
+        nullable:
+          type: boolean
+          description: Whether column contains nulls
+        unique_values:
+          type: integer
+          description: Number of unique values
+        null_count:
+          type: integer
+          description: Number of null values
+        sample_values:
+          type: array
+          items:
+            type: any
+          description: Sample of unique values
+
+    SchemaSummaryResponse:
+      type: object
+      required:
+        - total_tables
+        - tables
+      properties:
+        total_tables:
+          type: integer
+          description: Total number of tables
+        tables:
+          type: array
+          items:
+            type: object
+            required:
+              - name
+              - column_count
+              - columns
+              - row_count
+              - last_modified
+              - size_bytes
+            properties:
+              name:
+                type: string
+                description: Table name
+              column_count:
+                type: integer
+                description: Number of columns in the table
+              columns:
+                type: array
+                items:
+                  type: string
+                description: List of column names
+              row_count:
+                type: integer
+                description: Number of rows in the table
+              last_modified:
+                type: string
+                description: Last modified timestamp
+              size_bytes:
+                type: integer
+                description: File size in bytes
+
+    ErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          description: Error message
+
+    SQLInContextResponse:
+      type: object
+      required:
+        - sql_in_context
+        - query
+      properties:
+        sql_in_context:
+          type: string
+          description: SQL query in context
+        query:
+          type: string
+          description: Original query
+
+paths:
+  /:
+    get:
+      tags:
+        - root
+      summary: Root endpoint
+      description: Returns API status
+      responses:
+        '200':
+          description: API status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Cashflow DataMap Schema API"
+
+  /initialize:
+    post:
+      tags:
+        - root
+      summary: Initialize analyzer
+      description: Initialize the analyzer with provided configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfigRequest'
+      responses:
+        '200':
+          description: Analyzer initialized successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Analyzer initialized successfully"
+        '500':
+          description: Error initializing analyzer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+
+  /analyze:
+    post:
+      tags:
+        - analysis
+      summary: Analyze schema
+      description: Analyze database schema based on natural language query
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+      responses:
+        '200':
+          description: Analysis results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisResponse'
+        '500':
+          description: Error processing query
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /similar:
+    post:
+      tags:
+        - analysis
+      summary: Get similar schema
+      description: Get similar schema entries with similarity scores
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+      responses:
+        '200':
+          description: Similar schema entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimilarResponse'
+        '500':
+          description: Error getting similar schema
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /table:
+    post:
+      tags:
+        - tables
+      summary: Get table schema
+      description: Get detailed schema information about a specific table
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TableRequest'
+      responses:
+        '200':
+          description: Table schema information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TableResponse'
+        '500':
+          description: Error getting table schema
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /column:
+    post:
+      tags:
+        - columns
+      summary: Get column info
+      description: Get detailed information about a specific column
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ColumnRequest'
+      responses:
+        '200':
+          description: Column information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ColumnResponse'
+        '500':
+          description: Error getting column info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /schema:
+    get:
+      tags:
+        - analysis
+      summary: Get schema summary
+      description: Get summary of entire database schema
+      responses:
+        '200':
+          description: Schema summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaSummaryResponse'
+        '500':
+          description: Error getting schema summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /sql_in_context:
+    post:
+      tags:
+        - analysis
+      summary: Get SQL in context
+      description: Get SQL query in context based on natural language query
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+      responses:
+        '200':
+          description: SQL in context
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SQLInContextResponse'
+        '500':
+          description: Error processing query
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse' 

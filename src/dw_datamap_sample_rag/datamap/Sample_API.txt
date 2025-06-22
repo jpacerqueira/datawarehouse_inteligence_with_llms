@@ -1,0 +1,175 @@
+# Cashflow DataMap Schema API Samples
+# Base URL: http://0.0.0.0:8000
+
+# 1. Initialize Analyzer
+# POST /initialize
+curl -X POST "http://0.0.0.0:8000/initialize" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "config": {
+      "bucket_name": "project-dw_intel",
+      "prefix": "sbca/batch3/1299438/bronze/",
+      "region_name": "us-east-1",
+      "cache_size": 128,
+      "pattern": "*.parquet"
+    }
+  }'
+
+# Expected Response:
+# {
+#   "message": "Analyzer initialized successfully"
+# }
+
+# 2. Analyze Schema
+# POST /analyze
+curl -X POST "http://0.0.0.0:8000/analyze" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "what is my current payments cashflow?",
+    "context": "cashflow",
+    "format_type": "PostgreSQL"
+
+  }'
+
+# Expected Response:
+# {
+#   "analysis":"# Analysis of Current Payments Cashflow\n\n## SQL Query to Analyze Current Payments Cashflow\n\n```sql\nWITH payment_summary AS (\n    SELECT \n        p.date,\n        CASE \n            WHEN p.type = 'SalesReceipt' THEN 'Inflow'\n            WHEN p.type = 'PurchasePayment' THEN 'Outflow'\n            ELSE p.type\n        END AS flow_type,\n        SUM(p.total_amount) AS amount\n    FROM payments p\n    WHERE p.deleted_at IS NULL\n    GROUP BY p.date, p.type\n),\nmonthly_cashflow AS (\n    SELECT \n        TO_CHAR(TO_DATE(date, 'YYYY-MM-DD'), 'YYYY-MM') AS month,\n        flow_type,\n        SUM(amount) AS total_amount\n    FROM payment_summary\n    GROUP BY TO_CHAR(TO_DATE(date, 'YYYY-MM-DD'), 'YYYY-MM'), flow_type\n),\nnet_cashflow AS (\n    SELECT \n        month,\n        SUM(CASE WHEN flow_type = 'Inflow' THEN total_amount ELSE 0 END) AS inflows,\n        SUM(CASE WHEN flow_type = 'Outflow' THEN total_amount ELSE 0 END) AS outflows,\n        SUM(CASE WHEN flow_type = 'Inflow' THEN total_amount \n                 WHEN flow_type = 'Outflow' THEN -total_amount \n                 ELSE 0 END) AS net_cashflow\n    FROM monthly_cashflow\n    GROUP BY month\n    ORDER BY month\n)\n\nSELECT \n    month AS \"Month\",\n    ROUND(inflows::numeric, 2) AS \"Total Inflows\",\n    ROUND(outflows::numeric, 2) AS \"Total Outflows\",\n    ROUND(net_cashflow::numeric, 2) AS \"Net Cashflow\"\nFROM net_cashflow\nORDER BY month DESC;\n```\n\nThis query provides a monthly breakdown of your payment cashflows, showing:\n- Total inflows (money coming in from sales receipts)\n- Total outflows (money going out for purchases)\n- Net cashflow (difference between inflows and outflows)\n\nThe results are ordered by most recent month first, giving you a clear view of your current payment situation and recent trends.",
+#   "query":"what is my current payments cashflow?"
+# }
+
+# 3. Get SQL in Context
+# POST /sql_in_context
+curl -X POST "http://0.0.0.0:8000/sql_in_context" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "what is my current payments cashflow?",
+    "context": "cashflow",
+    "format_type": "PostgreSQL"
+  }'
+
+# Expected Response:
+# {
+#   "sql_in_context":"```sql\n-- Query to calculate current payments cashflow\nSELECT \n    SUM(CASE WHEN p.TYPE = 'PaymentReceipt' THEN p.TOTAL_AMOUNT ELSE 0 END) AS total_receipts,\n    SUM(CASE WHEN p.TYPE = 'PaymentSpend' THEN p.TOTAL_AMOUNT ELSE 0 END) AS total_spends,\n    SUM(CASE WHEN p.TYPE = 'PaymentReceipt' THEN p.TOTAL_AMOUNT ELSE -p.TOTAL_AMOUNT END) AS net_cashflow\nFROM \n    payments p\nWHERE \n    p.DELETED_AT IS NULL;\n```",
+    "query":"what is my current payments cashflow?"
+# }
+
+# 4. Get Similar Schema
+# POST /similar
+curl -X POST "http://0.0.0.0:8000/similar" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "payments",
+    "k": 3
+  }'
+
+# Expected Response:
+# {
+#   "similar_schema": [
+#     "payments",
+#     "transactions",
+#     "payment_history"
+#   ],
+#   "scores": [
+#     0.95,
+#     0.87,
+#     0.82
+#   ]
+# }
+
+# 5. Get Table Schema
+# POST /table
+curl -X POST "http://0.0.0.0:8000/table" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "table_name": "payments"
+  }'
+
+# Expected Response:
+# {
+#   "name": "payments",
+#   "columns": [
+#     {
+#       "name": "payment_id",
+#       "type": "string",
+#       "nullable": false
+#     },
+#     {
+#       "name": "amount",
+#       "type": "decimal",
+#       "nullable": false
+#     },
+#     {
+#       "name": "status",
+#       "type": "string",
+#       "nullable": false
+#     }
+#   ],
+#   "column_count": 3,
+#   "row_count": 1000,
+#   "last_modified": "2024-03-20T10:30:00Z",
+#   "size_bytes": 102400
+# }
+
+# 6. Get Column Info
+# POST /column
+curl -X POST "http://0.0.0.0:8000/column" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "table_name": "payments",
+    "column_name": "TOTAL_NET_AMOUNT"
+  }'
+
+# Expected Response:
+# {
+#   "name":"TOTAL_NET_AMOUNT",
+#   "type":"float64",
+#   "nullable": true,
+#   "unique_values": 500,
+#   "null_count": 0,
+#   "sample_values": [
+#     "100.00",
+#     "250.50",
+#     "75.25"
+#   ]
+# }
+
+# 7. Get Schema Summary
+# GET /schema
+curl -X GET "http://0.0.0.0:8000/schema"
+
+# Expected Response:
+# {
+#   "total_tables": 5,
+#   "tables": [
+#     {
+#       "name": "payments",
+#       "column_count": 3,
+#       "columns": ["payment_id", "amount", "status"],
+#       "row_count": 1000,
+#       "last_modified": "2024-03-20T10:30:00Z",
+#       "size_bytes": 102400
+#     },
+#     {
+#       "name": "customers",
+#       "column_count": 4,
+#       "columns": ["customer_id", "name", "email", "created_at"],
+#       "row_count": 500,
+#       "last_modified": "2024-03-20T10:30:00Z",
+#       "size_bytes": 51200
+#     }
+#   ]
+# }
+
+# 8. Root Endpoint
+# GET /
+curl -X GET "http://0.0.0.0:8000/"
+
+# Expected Response:
+# {
+#   "message": "Cashflow DataMap Schema API"
+# }
+
+# Error Response Example (for all endpoints):
+# {
+#   "detail": "Error message describing what went wrong"
+# } 

@@ -1,0 +1,7 @@
+{
+    "bucket_name": "project-dw_intel",
+    "prefix": "sbca/batch3/1299438/bronze/",
+    "region_name": "us-east-1",
+    "cache_size": 128,
+    "pattern": ".*\\.parquet$"
+}

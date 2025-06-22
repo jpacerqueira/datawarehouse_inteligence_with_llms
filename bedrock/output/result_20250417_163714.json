@@ -1,9 +1,0 @@
-{
-  "query": "Show net cash flow for February 2025",
-  "sql": "SELECT\n  SUM(inflow) - SUM(outflow) AS net_cash_flow\nFROM read_parquet('data/payments.parquet')\nWHERE transaction_date BETWEEN '2025-02-01' AND '2025-02-28';",
-  "results": [
-    {
-      "net_cash_flow": 23000.0
-    }
-  ]
-}

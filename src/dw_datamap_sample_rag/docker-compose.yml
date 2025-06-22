@@ -1,0 +1,42 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: bedrock_datamap_api.Dockerfile
+    container_name: bedrock-datamap-api
+    ports:
+      - "8000:8000"
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
+      - DATAMAP_CONFIG_PATH=/app/config/datamap_config.json
+    volumes:
+      - ./config:/app/config
+      - $HOME/.aws:/root/.aws
+    networks:
+      - bedrock-datamap-rag
+    restart: unless-stopped
+
+  analyzer:
+    build:
+      context: .
+      dockerfile: streamlit_app.Dockerfile
+    container_name: bedrock-datamap-analyzer
+    ports:
+      - "8501:8501"
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
+    volumes:
+      - ./config:/app/config
+      - $HOME/.aws:/root/.aws
+    networks:
+      - bedrock-datamap-rag
+    restart: unless-stopped
+
+networks:
+  bedrock-datamap-rag:
+    name: bedrock-datamap-rag
+    driver: bridge 

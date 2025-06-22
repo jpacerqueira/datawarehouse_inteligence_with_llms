@@ -1,7 +1,0 @@
--- Cash Flow Analysis Template
-SELECT
-  SUM(inflow) - SUM(outflow) AS net_cash_flow,
-  SUM(inflow) AS total_inflow,
-  SUM(outflow) AS total_outflow
-FROM {{ table }}
-WHERE transaction_date BETWEEN '{{ start_date }}' AND '{{ end_date }}';
