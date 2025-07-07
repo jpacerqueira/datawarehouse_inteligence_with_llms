@@ -1,1 +1,0 @@
-python -m streamlit run dw_intel/datamap_streamlit/ui.py
